@@ -2,3 +2,4 @@
 *migrations*
 *pycache*
 *venv*
+db.sqlite3
