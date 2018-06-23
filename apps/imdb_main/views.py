@@ -66,7 +66,7 @@ class CustomView(APIView):
 
 class LoginView(CustomView):
     required_params = ['user', 'password']
-
+    permission_classes = ()
     def post(self, request, format=None):
         try:
             user = request.data["user"]

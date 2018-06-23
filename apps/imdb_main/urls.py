@@ -13,7 +13,8 @@ urlpatterns = [
     path('search/',SearchView.as_view(),name='search'),
 path('addmovie/',AddMovieView.as_view(),name='addmovie'),
 path('editmovie/',EditMovieView.as_view(),name='editmovie'),
-path('deletemovie/',DeleteMovieView.as_view(),name='deletemovie')
+path('deletemovie/',DeleteMovieView.as_view(),name='deletemovie'),
+path('login/',LoginView.as_view(),name='deletemovie'),
 
 
 ]
