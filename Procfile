@@ -1,2 +1,2 @@
-web: gunicorn mysite.wsgi --log-file -
+web: gunicorn faux_imdb.wsgi --log-file -
 
