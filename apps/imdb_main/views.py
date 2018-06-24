@@ -1,6 +1,10 @@
+import coreschema
 from django.contrib.auth import authenticate, login
 from django.shortcuts import render, get_object_or_404
-
+from rest_framework.decorators import renderer_classes, api_view
+from rest_framework.schemas import AutoSchema
+from rest_framework_swagger.renderers import OpenAPIRenderer, SwaggerUIRenderer
+import coreapi
 # Create your views here.
 from rest_framework import status, viewsets
 from rest_framework.authentication import SessionAuthentication, TokenAuthentication
@@ -67,6 +71,20 @@ class CustomView(APIView):
 class LoginView(CustomView):
     required_params = ['user', 'password']
     permission_classes = ()
+    schema = AutoSchema(manual_fields=[
+        coreapi.Field(
+            "user",
+            required=True,
+            location="form",
+            schema=coreschema.String()
+        ),
+        coreapi.Field(
+            "password",
+            required=True,
+            location="form",
+            schema=coreschema.String()
+        ),
+    ])
     def post(self, request, format=None):
         try:
             user = request.data["user"]
@@ -75,8 +93,8 @@ class LoginView(CustomView):
             if user is not None:
                 if user.is_active:
                     login(request, user)
-                    Token.objects.get_or_create(user=user)
-                    return Response({"success": True, "Token": Token})
+                    token=Token.objects.get_or_create(user=user)[0]
+                    return Response({"success": True, "Token": token.key})
         except Exception as e:
             return Response({'msg': str(e)}, status=status.HTTP_400_BAD_REQUEST)
         return Response({})
@@ -85,20 +103,66 @@ class LoginView(CustomView):
 class AddMovieView(CustomView):
     authentication_classes = (SessionAuthentication, TokenAuthentication,)
     permission_classes = (IsAuthenticated, IsAdminUser,)
-    required_params = ['name', 'imdb_score', '99popularity', 'ratings', 'people', 'genre']
+    required_params = ['name', 'imdb_score', '99popularity',  'people', 'genre']
+    schema = AutoSchema(manual_fields=[
+        coreapi.Field(
+            "name",
+            required=True,
+            location="form",
+            schema=coreschema.String()
+        ),
+        coreapi.Field(
+            "imdb_score",
+            required=True,
+            location="form",
+            schema=coreschema.Number()
+        ),
+        coreapi.Field(
+            "99popularity",
+            required=True,
+            location="form",
+            schema=coreschema.Number()
+        ),
+        coreapi.Field(
+            "people",
+            required=False,
+            location="form",
+            schema=coreschema.Array(),
+            description="""[{'name':'abc','role':'actor'},...]""",
 
+        ),
+        coreapi.Field(
+            "genre",
+            required=True,
+            location="form",
+            schema=coreschema.Array(),
+            description="['horror','Adventure']",
+        ),
+        coreapi.Field(
+            "director",
+            required=False,
+            location="form",
+            schema=coreschema.String(),
+
+        ),
+    ])
     def post(self, request, format=None):
         data = request.data
         try:
             movie = Movie(name=data["name"], imdb_score=data["imdb_score"], popularity99=data['99popularity'])
             movie.save()
+            if "director" in data:
+                role = MovieRole.objects.get_or_create(name="director")[0]
+                person_temp = Person.objects.get_or_create(name=data["director"])[0]
+                mov_p_roles = MoviePersonRoles(person=person_temp, movie=movie, role=role)
+                mov_p_roles.save()
             for person in data["people"]:
                 role = MovieRole.objects.get_or_create(name=person["role"])[0]
                 person_temp = Person.objects.get_or_create(name=person["name"])[0]
                 mov_p_roles = MoviePersonRoles(person=person_temp, movie=movie, role=role)
                 mov_p_roles.save()
             for tag in data["genre"]:
-                genre = Genre.objects.get_or_create(name=tag)
+                genre = Genre.objects.get_or_create(name=tag)[0]
                 movie.genre.add(genre)
             movie.save()
             return Response({'movie_id': movie.pk})
@@ -110,6 +174,13 @@ class DeleteMovieView(CustomView):
     authentication_classes = (SessionAuthentication, TokenAuthentication,)
     permission_classes = (IsAuthenticated, IsAdminUser,)
     required_params = ['id']
+    schema = AutoSchema(manual_fields=[
+        coreapi.Field(
+            "id",
+            required=True,
+            location="form",
+            schema=coreschema.Integer()
+        ),])
 
     def post(self, request, format=None):
         try:
@@ -124,7 +195,74 @@ class EditMovieView(CustomView):
     permission_classes = (IsAuthenticated, IsAdminUser,)
     required_params = ['id', 'name', 'imdb_score', '99popularity',
                        'ratings','delete_genre','add_genre','delete_movie_person','edit_person_role','add_person']
+    schema = AutoSchema(manual_fields=[
+        coreapi.Field(
+            "id",
+            required=True,
+            location="form",
+            schema=coreschema.Integer()
+        ),
+    coreapi.Field(
+            "name",
+            required=True,
+            location="form",
+            schema=coreschema.String()
+        ),
+        coreapi.Field(
+            "imdb_score",
+            required=True,
+            location="form",
+            schema=coreschema.Number()
+        ),
+        coreapi.Field(
+            "99popularity",
+            required=True,
+            location="form",
+            schema=coreschema.Number()
+        ),
+        coreapi.Field(
+            "delete_movie_person",
+            required=False,
+            location="form",
+            schema=coreschema.Array(),
+            description="""[{'id':'abc','role':'actor'},...]""",
+        ),
+        coreapi.Field(
+            "edit_person_role",
+            required=False,
+            location="form",
+            schema=coreschema.Array(),
+            description="""[{'name':'abc','prev_role':'actor'},...]""",
+        ),
+        coreapi.Field(
+            "add_person",
+            required=False,
+            location="form",
+            schema=coreschema.Array(coreschema.Array()),
+            description="""[{'name':'abc','prev_role':'actor'},...]""",
+        ),
+        coreapi.Field(
+            "delete_genre",
+            required=True,
+            location="form",
+            schema=coreschema.Array(),
+            description="['horror','Adventure']",
+        ),
+        coreapi.Field(
+            "add_genre",
+            required=True,
+            location="form",
+            schema=coreschema.Array(),
+            description="['horror','Adventure']",
+        ),
+        coreapi.Field(
+            "director",
+            required=False,
+            location="form",
+            schema=coreschema.String(),
 
+        ),
+    ])
     def post(self, request, format=None):
         try:
             data = request.data
@@ -217,7 +355,7 @@ class EditMovieView(CustomView):
 
 class GenreViewSet(viewsets.ReadOnlyModelViewSet):
     """
-    A simple ViewSet for listing or retrieving movies.
+    A  ViewSet for listing or retrieving genre.
     """
     queryset = Genre.objects.all()
     serializer_class = GenreModelSerializer
@@ -226,7 +364,7 @@ class GenreViewSet(viewsets.ReadOnlyModelViewSet):
 
 class PersonViewSet(viewsets.ReadOnlyModelViewSet):
     """
-    A simple ViewSet for listing or retrieving movies.
+    A  ViewSet for listing or retrieving persons.
     """
     queryset = Person.objects.all()
     serializer_class = PersonSerializer
@@ -234,7 +372,7 @@ class PersonViewSet(viewsets.ReadOnlyModelViewSet):
 
 class MovieViewSet(viewsets.ReadOnlyModelViewSet):
     """
-    A simple ViewSet for listing or retrieving movies.
+    A  ViewSet for listing or retrieving movies.
     """
     queryset = Movie.objects.all()
     serializer_class = MovieSerializer
