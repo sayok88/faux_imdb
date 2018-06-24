@@ -3,7 +3,7 @@ from django.urls import path
 from rest_framework import routers
 from .views import *
 from rest_framework_swagger.views import get_swagger_view
-schema_view = get_swagger_view(title='Pastebin API')
+schema_view = get_swagger_view(title='Faux IMDB API')
 router = routers.DefaultRouter()
 router.register(r'movies', MovieViewSet)
 router.register(r'persons', PersonViewSet)
