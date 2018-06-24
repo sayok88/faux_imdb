@@ -1,15 +1,25 @@
 from django.db import models
+'''
+Model to store persons related to movie
+'''
 
-# Create your models here.
 class Person(models.Model):
     name=models.CharField(max_length=150)
 
     def __str__(self):
         return self.name
+
+'''
+Model to store genres
+'''
 class Genre(models.Model):
     name=models.CharField(max_length=50)
     def __str__(self):
         return self.name
+
+'''
+Model to store  movie
+'''
 class Movie(models.Model):
     name=models.CharField(max_length=150)
     imdb_score=models.FloatField(default=0.0)

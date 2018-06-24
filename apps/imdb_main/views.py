@@ -14,7 +14,9 @@ from rest_framework.response import Response
 from rest_framework.views import APIView
 from .models import *
 from .serializers import *
-
+'''
+loops through request data to check fields
+'''
 def request_validator(request, check_list):
     try:
         data = request.data
@@ -67,7 +69,9 @@ class CustomView(APIView):
         self.response = self.finalize_response(request, response, *args, **kwargs)
         return self.response
 
-
+'''
+Login View
+'''
 class LoginView(CustomView):
     required_params = ['user', 'password']
     permission_classes = ()
@@ -99,7 +103,12 @@ class LoginView(CustomView):
             return Response({'msg': str(e)}, status=status.HTTP_400_BAD_REQUEST)
         return Response({})
 
-
+    '''
+    Add Movies
+    optional field
+    ==============
+    director
+    '''
 class AddMovieView(CustomView):
     authentication_classes = (SessionAuthentication, TokenAuthentication,)
     permission_classes = (IsAuthenticated, IsAdminUser,)
@@ -168,7 +177,9 @@ class AddMovieView(CustomView):
             return Response({'movie_id': movie.pk})
         except Exception as e:
             return Response({"error": str(e)}, status=status.HTTP_400_BAD_REQUEST)
-
+'''
+Movie Deletion View
+'''
 
 class DeleteMovieView(CustomView):
     authentication_classes = (SessionAuthentication, TokenAuthentication,)
@@ -189,7 +200,10 @@ class DeleteMovieView(CustomView):
         except Exception as e:
             return Response({"error": str(e)}, status=status.HTTP_400_BAD_REQUEST)
 
-
+"""
+Edit Movie View
+params are same as required params
+"""
 class EditMovieView(CustomView):
     authentication_classes = (SessionAuthentication, TokenAuthentication,)
     permission_classes = (IsAuthenticated, IsAdminUser,)
@@ -352,6 +366,16 @@ class EditMovieView(CustomView):
             return Response({'message': 'success'})
         except Exception as e:
             return Response({"error": str(e)}, status=status.HTTP_400_BAD_REQUEST)
+'''
+=================================================
+
+Model Viewsets
+
+=================================================
+
+'''
+
+
 
 class GenreViewSet(viewsets.ReadOnlyModelViewSet):
     """
@@ -394,6 +418,14 @@ class MovieViewSet(viewsets.ReadOnlyModelViewSet):
 class SearchView(CustomView):
     required_params =  ['search']
     permission_classes = ()
+    schema = AutoSchema(manual_fields=[
+        coreapi.Field(
+            "search",
+            required=True,
+            location="form",
+            schema=coreschema.String(),
+            description="genre or person or movie name partial"
+        ),])
     def post(self,request,format=None):
         movies=Movie.objects.filter(name__icontains=request.data['search'].lower())
         person = Person.objects.filter(name__icontains=request.data['search'].lower())
